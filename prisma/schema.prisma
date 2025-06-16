@@ -1,0 +1,79 @@
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(uuid())
+  email       String      @unique
+  username    String      @unique
+  password    String 
+  createdAt DateTime @default(now())
+
+  userInfo  UserInfo? // one-one relation
+  completions LessonCompletion[] //one-many relation
+  attempts    ExerciseAttempt[] //one-many relation
+}
+
+model UserInfo {
+  userId        String   @id // Primary key AND foreign key
+  xp            Int      @default(0)
+  currentStreak Int      @default(0)
+  lastActivity  DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Lesson {
+  id        Int         @id @default(autoincrement()) //Primary key
+  title     String
+  level     Int
+  topic     String
+
+  exercises Exercise[]
+  completions LessonCompletion[]
+}
+
+model Exercise {
+  id        Int         @id @default(autoincrement())
+  type      String
+  prompt    String
+  options   Json
+  answers   Json
+
+  lessonId  Int
+  lesson    Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  attempts  ExerciseAttempt[]
+}
+
+model LessonCompletion {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  lessonId  Int
+  completedAt DateTime @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId]) 
+}
+
+model ExerciseAttempt {
+  id         Int       @id @default(autoincrement())
+  userId     String
+  exerciseId Int
+  isCorrect  Boolean
+  xpAwarded  Int
+  attemptedAt DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
